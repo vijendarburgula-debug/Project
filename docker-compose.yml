@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+
+  # ── Java Spring Boot CORS proxy ─────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: api-helper-backend
+    restart: unless-stopped
+    environment:
+      # AI chat key — set ANTHROPIC_API_KEY in a .env file next to this compose file.
+      # Leave unset and the app still runs (AI chat just shows a "key not set" message).
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    expose:
+      - "8080"            # only reachable by frontend container, not the internet
+
+  # ── React + Nginx frontend ──────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: api-helper-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"           # open to the internet on port 80
+    depends_on:
+      - backend

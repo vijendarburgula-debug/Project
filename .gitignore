@@ -1,0 +1,25 @@
+# Backend (Maven/Java)
+backend/target/
+backend/*.log
+backend/*.log.err
+backend/*.run.log
+backend/*.run.err
+
+# Frontend (Node/Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/*.log
+frontend/*.log.err
+frontend/*.run.log
+frontend/*.run.err
+
+# Env / secrets
+.env
+*.env
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS cruft
+Thumbs.db
+.DS_Store

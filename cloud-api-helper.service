@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloud API Helper — Java CORS proxy backend
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/cloud-api-helper
+ExecStart=/usr/bin/java -jar /opt/cloud-api-helper/postman-helper-1.0.0.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
