@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { ADMIN_EMAIL } from '../constants';
 
 export default function LoginGate({ onLogin }) {
-  const [mode,     setMode]     = useState('login'); // 'login' | 'register'
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [mode,          setMode]          = useState('login'); // 'login' | 'register'
+  const [email,         setEmail]         = useState('');
+  const [password,      setPassword]      = useState('');
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState('');
+  const [showForgotHelp, setShowForgotHelp] = useState(false);
 
   const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
   const isValid = isValidEmail && password.length >= 8;
@@ -63,6 +65,27 @@ export default function LoginGate({ onLogin }) {
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
+
+        {mode === 'login' && (
+          <div className="text-right -mt-2">
+            <button
+              type="button"
+              onClick={() => setShowForgotHelp(v => !v)}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
+
+        {showForgotHelp && mode === 'login' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-gray-600">
+            There's no self-service reset yet — ask your admin to set a new password for you:
+            <a href={`mailto:${ADMIN_EMAIL}`} className="block mt-1 font-semibold text-blue-700 hover:text-blue-900">
+              {ADMIN_EMAIL}
+            </a>
+          </div>
+        )}
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 

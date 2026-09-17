@@ -8,6 +8,7 @@ import HistorySidebar     from './components/HistorySidebar';
 import AiChat            from './components/AiChat';
 import LoginGate          from './components/LoginGate';
 import LoginsPanel        from './components/LoginsPanel';
+import { ADMIN_EMAIL }    from './constants';
 
 import { googleMyDriveAPIs }     from './apis/googleMyDrive';
 import { googleSharedDriveAPIs } from './apis/googleSharedDrive';
@@ -76,8 +77,6 @@ const SIDEBAR_KEY = 'cloud_api_helper_sidebar';
 const EMAIL_KEY   = 'cloud_api_helper_user_email';
 const SESSION_KEY = 'cloud_api_helper_session_token';
 const MAX_HISTORY = 100;
-// Only this email can see the login history — must match backend's app.admin.email.
-const ADMIN_EMAIL = 'vijendarburgula@gmail.com';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 // Request history is scoped per logged-in email, so switching users on the
