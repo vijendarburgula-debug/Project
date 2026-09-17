@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { buildNestedBody } from '../utils/buildBody';
-import { TOKEN_HELP } from '../apis/tokenHelp';
 
 // ── Method colours (Postman-style) ──────────────────────────────────────────
 const METHOD_TEXT = {
@@ -26,7 +25,6 @@ function maskToken(value) {
 
 export default function RequestPanel({
   operation,
-  service,
   previewUrl,
   manualUrl,
   onUrlChange,
@@ -41,8 +39,6 @@ export default function RequestPanel({
 }) {
   const [tab, setTab]         = useState('params');
   const [showTok, setTok]     = useState(false);
-  const [showHelp, setHelp]   = useState(false);
-  const tokenHelp = TOKEN_HELP[service];
 
   const pathParams  = operation.params.filter(p => p.type === 'path');
   const queryParams = operation.params.filter(p => p.type === 'query');

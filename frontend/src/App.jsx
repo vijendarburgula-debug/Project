@@ -355,7 +355,6 @@ export default function App() {
             {operation ? (
               <RequestPanel
                 operation={operation}
-                service={service}
                 previewUrl={buildPreviewUrl()}
                 manualUrl={manualUrl}
                 onUrlChange={setManualUrl}

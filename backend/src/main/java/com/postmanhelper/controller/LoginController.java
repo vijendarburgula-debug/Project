@@ -24,12 +24,19 @@ import java.util.*;
 @RequestMapping("/api/auth")
 public class LoginController {
 
-    private static final Path CSV_PATH = Paths.get("logins.csv");
     private static final String HEADER = "email,timestamp,ip";
     private static final Object LOCK = new Object();
 
     @Value("${app.admin.email}")
     private String adminEmail;
+
+    // Defaults to a relative path (wiped on every restart on Render's default
+    // ephemeral disk). Point this at a mounted persistent disk in production,
+    // e.g. LOGINS_CSV_PATH=/data/logins.csv, to survive restarts/redeploys.
+    @Value("${app.logins.csv.path:logins.csv}")
+    private String csvPathProp;
+
+    private Path csvPath() { return Paths.get(csvPathProp); }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest req, HttpServletRequest httpReq) {
@@ -69,8 +76,8 @@ public class LoginController {
         if (!isAdmin(requesterEmail)) {
             return ResponseEntity.status(403).body(Collections.singletonMap("error", "Admin access only."));
         }
-        byte[] bytes = Files.exists(CSV_PATH)
-                ? Files.readAllBytes(CSV_PATH)
+        byte[] bytes = Files.exists(csvPath())
+                ? Files.readAllBytes(csvPath())
                 : (HEADER + "\n").getBytes(StandardCharsets.UTF_8);
 
         return ResponseEntity.ok()
@@ -87,20 +94,25 @@ public class LoginController {
 
     private void appendRow(String email, String timestamp, String ip) throws IOException {
         synchronized (LOCK) {
-            boolean isNew = !Files.exists(CSV_PATH);
+            Path path = csvPath();
+            if (path.getParent() != null) {
+                Files.createDirectories(path.getParent());
+            }
+            boolean isNew = !Files.exists(path);
             if (isNew) {
-                Files.write(CSV_PATH, (HEADER + "\n").getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+                Files.write(path, (HEADER + "\n").getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
             }
             String line = String.format("%s,%s,%s%n", escape(email), timestamp, escape(ip));
-            Files.write(CSV_PATH, line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+            Files.write(path, line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }
     }
 
     private List<Map<String, String>> readRows() throws IOException {
         List<Map<String, String>> rows = new ArrayList<>();
-        if (!Files.exists(CSV_PATH)) return rows;
+        Path path = csvPath();
+        if (!Files.exists(path)) return rows;
 
-        List<String> lines = Files.readAllLines(CSV_PATH, StandardCharsets.UTF_8);
+        List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
         for (int i = 1; i < lines.size(); i++) { // skip header
             String line = lines.get(i);
             if (line.trim().isEmpty()) continue;
