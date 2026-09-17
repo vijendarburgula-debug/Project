@@ -1,6 +1,7 @@
 package com.postmanhelper.controller;
 
 import com.postmanhelper.model.LoginRequest;
+import com.postmanhelper.store.LoginStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -10,33 +11,26 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 // Lightweight "who's using this tool" tracker — no passwords, no accounts.
-// Anyone can type any email to get in; every login is appended to logins.csv
-// so it can be opened directly in Excel or queried through this API.
+// Anyone can type any email to get in; every login is recorded via LoginStore
+// (a CSV file locally, or Postgres in production — see the store package).
 @RestController
 @RequestMapping("/api/auth")
 public class LoginController {
 
-    private static final String HEADER = "email,timestamp,ip";
-    private static final Object LOCK = new Object();
-
     @Value("${app.admin.email}")
     private String adminEmail;
 
-    // Defaults to a relative path (wiped on every restart on Render's default
-    // ephemeral disk). Point this at a mounted persistent disk in production,
-    // e.g. LOGINS_CSV_PATH=/data/logins.csv, to survive restarts/redeploys.
-    @Value("${app.logins.csv.path:logins.csv}")
-    private String csvPathProp;
+    private final LoginStore store;
 
-    private Path csvPath() { return Paths.get(csvPathProp); }
+    public LoginController(LoginStore store) {
+        this.store = store;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest req, HttpServletRequest httpReq) {
@@ -49,7 +43,7 @@ public class LoginController {
         String ip = httpReq.getRemoteAddr();
 
         try {
-            appendRow(email, timestamp, ip);
+            store.append(email, timestamp, ip);
         } catch (IOException e) {
             return ResponseEntity.status(500).body(Collections.singletonMap("error", "Could not record login: " + e.getMessage()));
         }
@@ -66,9 +60,7 @@ public class LoginController {
         if (!isAdmin(requesterEmail)) {
             return ResponseEntity.status(403).body(Collections.singletonMap("error", "Admin access only."));
         }
-        List<Map<String, String>> rows = readRows();
-        Collections.reverse(rows); // newest first
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(store.list());
     }
 
     @GetMapping("/logins/export")
@@ -76,10 +68,7 @@ public class LoginController {
         if (!isAdmin(requesterEmail)) {
             return ResponseEntity.status(403).body(Collections.singletonMap("error", "Admin access only."));
         }
-        byte[] bytes = Files.exists(csvPath())
-                ? Files.readAllBytes(csvPath())
-                : (HEADER + "\n").getBytes(StandardCharsets.UTF_8);
-
+        byte[] bytes = store.exportCsv().getBytes(StandardCharsets.UTF_8);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"logins.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
@@ -88,53 +77,5 @@ public class LoginController {
 
     private boolean isAdmin(String requesterEmail) {
         return requesterEmail != null && requesterEmail.trim().equalsIgnoreCase(adminEmail.trim());
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private void appendRow(String email, String timestamp, String ip) throws IOException {
-        synchronized (LOCK) {
-            Path path = csvPath();
-            if (path.getParent() != null) {
-                Files.createDirectories(path.getParent());
-            }
-            boolean isNew = !Files.exists(path);
-            if (isNew) {
-                Files.write(path, (HEADER + "\n").getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
-            }
-            String line = String.format("%s,%s,%s%n", escape(email), timestamp, escape(ip));
-            Files.write(path, line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
-        }
-    }
-
-    private List<Map<String, String>> readRows() throws IOException {
-        List<Map<String, String>> rows = new ArrayList<>();
-        Path path = csvPath();
-        if (!Files.exists(path)) return rows;
-
-        List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-        for (int i = 1; i < lines.size(); i++) { // skip header
-            String line = lines.get(i);
-            if (line.trim().isEmpty()) continue;
-            String[] parts = line.split(",", -1);
-            Map<String, String> row = new LinkedHashMap<>();
-            row.put("email", parts.length > 0 ? unescape(parts[0]) : "");
-            row.put("timestamp", parts.length > 1 ? parts[1] : "");
-            row.put("ip", parts.length > 2 ? unescape(parts[2]) : "");
-            rows.add(row);
-        }
-        return rows;
-    }
-
-    private String escape(String v) {
-        if (v == null) return "";
-        return v.contains(",") ? "\"" + v.replace("\"", "\"\"") + "\"" : v;
-    }
-
-    private String unescape(String v) {
-        if (v != null && v.startsWith("\"") && v.endsWith("\"")) {
-            return v.substring(1, v.length() - 1).replace("\"\"", "\"");
-        }
-        return v;
     }
 }
