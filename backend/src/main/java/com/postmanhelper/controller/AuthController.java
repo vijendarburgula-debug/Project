@@ -40,6 +40,11 @@ public class AuthController {
     @Value("${app.logins.csv.path:logins.csv}")
     private String csvPathProp;
 
+    @Value("${app.reset-requests.csv.path:reset_requests.csv}")
+    private String resetRequestsPathProp;
+
+    private static final String RESET_REQUESTS_HEADER = "email,timestamp";
+
     public AuthController(UserAccountRepository users, SessionService sessions) {
         this.users = users;
         this.sessions = sessions;
@@ -93,6 +98,22 @@ public class AuthController {
         return ResponseEntity.ok(authResult(token, email));
     }
 
+    // ── Forgot password (no email sending — just logs the request for the
+    // admin to see and act on via the reset-password tool above) ──────────────
+    @PostMapping("/request-reset")
+    public ResponseEntity<?> requestReset(@RequestBody AuthRequest req) {
+        String email = normalizeEmail(req.getEmail());
+        if (email.isEmpty() || !email.contains("@")) {
+            return error(400, "A valid email is required.");
+        }
+        try {
+            appendResetRequestRow(email, Instant.now().toString());
+        } catch (IOException e) {
+            return error(500, "Could not record the request: " + e.getMessage());
+        }
+        return ResponseEntity.ok(Collections.singletonMap("status", "ok"));
+    }
+
     // ── Logout ───────────────────────────────────────────────────────────────
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest httpReq) {
@@ -131,6 +152,14 @@ public class AuthController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"logins.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(bytes);
+    }
+
+    @GetMapping("/admin/reset-requests")
+    public ResponseEntity<?> resetRequests(HttpServletRequest httpReq) throws IOException {
+        if (!isAdmin(httpReq)) return error(403, "Admin access only.");
+        List<Map<String, String>> rows = readResetRequestRows();
+        Collections.reverse(rows); // newest first
+        return ResponseEntity.ok(rows);
     }
 
     // ── Admin: user accounts / password reset ────────────────────────────────
@@ -191,6 +220,40 @@ public class AuthController {
     }
 
     private Path csvPath() { return Paths.get(csvPathProp); }
+
+    private Path resetRequestsPath() { return Paths.get(resetRequestsPathProp); }
+
+    private void appendResetRequestRow(String email, String timestamp) throws IOException {
+        synchronized (CSV_LOCK) {
+            Path path = resetRequestsPath();
+            if (path.getParent() != null) {
+                Files.createDirectories(path.getParent());
+            }
+            if (!Files.exists(path)) {
+                Files.write(path, (RESET_REQUESTS_HEADER + "\n").getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+            }
+            String line = String.format("%s,%s%n", csvEscape(email), timestamp);
+            Files.write(path, line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+        }
+    }
+
+    private List<Map<String, String>> readResetRequestRows() throws IOException {
+        List<Map<String, String>> rows = new ArrayList<>();
+        Path path = resetRequestsPath();
+        if (!Files.exists(path)) return rows;
+
+        List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+        for (int i = 1; i < lines.size(); i++) { // skip header
+            String line = lines.get(i);
+            if (line.trim().isEmpty()) continue;
+            String[] parts = line.split(",", -1);
+            Map<String, String> row = new LinkedHashMap<>();
+            row.put("email", parts.length > 0 ? csvUnescape(parts[0]) : "");
+            row.put("timestamp", parts.length > 1 ? parts[1] : "");
+            rows.add(row);
+        }
+        return rows;
+    }
 
     private void appendCsvRow(String email, String timestamp, String ip) throws IOException {
         synchronized (CSV_LOCK) {

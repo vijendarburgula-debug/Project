@@ -36,7 +36,8 @@ public class SessionAuthFilter implements Filter {
         boolean isPublic = !path.startsWith("/api/")
                 || "OPTIONS".equalsIgnoreCase(method)
                 || path.equals("/api/auth/register")
-                || path.equals("/api/auth/login");
+                || path.equals("/api/auth/login")
+                || path.equals("/api/auth/request-reset");
 
         if (isPublic) {
             chain.doFilter(req, res);

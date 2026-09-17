@@ -7,7 +7,19 @@ function formatTime(iso) {
 }
 
 export default function LoginsPanel({ onClose }) {
-  const [tab, setTab] = useState('history'); // 'history' | 'reset'
+  const [tab, setTab] = useState('history'); // 'history' | 'requests' | 'reset'
+
+  // ── Reset requests ("forgot password" clicks) ───────────────────────────
+  const [requests,        setRequests]        = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [requestsError,   setRequestsError]   = useState('');
+
+  useEffect(() => {
+    axios.get('/api/auth/admin/reset-requests')
+      .then(res => setRequests(res.data || []))
+      .catch(err => setRequestsError(err.response?.data?.error || err.message || 'Failed to load requests.'))
+      .finally(() => setRequestsLoading(false));
+  }, []);
 
   // ── Login history ────────────────────────────────────────────────────────
   const [rows,      setRows]      = useState([]);
@@ -56,6 +68,12 @@ export default function LoginsPanel({ onClose }) {
       .catch(() => {});
   }, []);
 
+  const jumpToReset = email => {
+    setTargetEmail(email);
+    setResetMessage(null);
+    setTab('reset');
+  };
+
   const submitReset = async e => {
     e.preventDefault();
     if (!targetEmail || newPassword.length < 8 || resetting) return;
@@ -87,8 +105,9 @@ export default function LoginsPanel({ onClose }) {
         {/* Tabs */}
         <div className="flex items-center gap-1 px-4 pt-2 border-b border-gray-200 flex-shrink-0">
           {[
-            { id: 'history', label: 'Login History' },
-            { id: 'reset',   label: 'Reset Password' },
+            { id: 'history',  label: 'Login History' },
+            { id: 'requests', label: `Reset Requests${requests.length ? ` (${requests.length})` : ''}` },
+            { id: 'reset',    label: 'Reset Password' },
           ].map(t => (
             <button
               key={t.id}
@@ -145,6 +164,45 @@ export default function LoginsPanel({ onClose }) {
               )}
             </div>
           </>
+        )}
+
+        {/* ── Reset Requests tab ── */}
+        {tab === 'requests' && (
+          <div className="flex-1 overflow-y-auto">
+            {requestsLoading ? (
+              <p className="text-sm text-gray-400 text-center py-8">Loading…</p>
+            ) : requestsError ? (
+              <p className="text-sm text-red-500 text-center py-8">{requestsError}</p>
+            ) : requests.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">No password reset requests.</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-gray-50">
+                  <tr className="text-left text-gray-500 border-b border-gray-200">
+                    <th className="px-4 py-2 font-semibold">Email</th>
+                    <th className="px-4 py-2 font-semibold">Requested</th>
+                    <th className="px-4 py-2 font-semibold"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((r, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-2 font-mono text-gray-800">{r.email}</td>
+                      <td className="px-4 py-2 text-gray-500">{formatTime(r.timestamp)}</td>
+                      <td className="px-4 py-2 text-right">
+                        <button
+                          onClick={() => jumpToReset(r.email)}
+                          className="text-blue-600 hover:text-blue-800 font-semibold"
+                        >
+                          Reset →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         )}
 
         {/* ── Reset Password tab ── */}

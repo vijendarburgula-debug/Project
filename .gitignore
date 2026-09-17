@@ -5,6 +5,7 @@ backend/*.log.err
 backend/*.run.log
 backend/*.run.err
 backend/logins.csv
+backend/reset_requests.csv
 backend/data/
 
 # Frontend (Node/Vite)
