@@ -6,17 +6,36 @@ function formatTime(iso) {
   catch { return iso; }
 }
 
-export default function LoginsPanel({ requesterEmail, onClose }) {
-  const [rows,    setRows]    = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
+export default function LoginsPanel({ onClose }) {
+  const [rows,       setRows]       = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
+  const [exporting,  setExporting]  = useState(false);
 
   useEffect(() => {
-    axios.get('/api/auth/logins', { params: { requesterEmail } })
+    axios.get('/api/auth/logins')
       .then(res => setRows(res.data || []))
       .catch(err => setError(err.response?.data?.error || err.message || 'Failed to load logins.'))
       .finally(() => setLoading(false));
-  }, [requesterEmail]);
+  }, []);
+
+  // A plain <a href> can't carry the session's Authorization header, so fetch
+  // the CSV via axios (which does) and hand the browser a local blob instead.
+  const downloadCsv = async () => {
+    setExporting(true);
+    try {
+      const res = await axios.get('/api/auth/logins/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'logins.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to export CSV.');
+    }
+    setExporting(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center px-4" onClick={onClose}>
@@ -32,12 +51,13 @@ export default function LoginsPanel({ requesterEmail, onClose }) {
             <p className="text-xs text-gray-400 mt-0.5">{rows.length} total login{rows.length === 1 ? '' : 's'}</p>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href={`/api/auth/logins/export?requesterEmail=${encodeURIComponent(requesterEmail)}`}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-lg px-3 py-1.5 transition-colors"
+            <button
+              onClick={downloadCsv}
+              disabled={exporting}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
             >
-              ⬇ Download CSV
-            </a>
+              {exporting ? 'Exporting…' : '⬇ Download CSV'}
+            </button>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-700 text-lg leading-none px-1"

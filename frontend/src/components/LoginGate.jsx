@@ -2,25 +2,29 @@ import { useState } from 'react';
 import axios from 'axios';
 
 export default function LoginGate({ onLogin }) {
-  const [email,   setEmail]   = useState('');
-  const [loading, setLoading] = useState(false);
+  const [mode,     setMode]     = useState('login'); // 'login' | 'register'
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
 
-  const isValid = /\S+@\S+\.\S+/.test(email.trim());
+  const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
+  const isValid = isValidEmail && password.length >= 8;
 
   const submit = async e => {
     e.preventDefault();
     if (!isValid || loading) return;
     setLoading(true);
+    setError('');
 
     try {
-      await axios.post('/api/auth/login', { email: email.trim() });
+      const url = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const res = await axios.post(url, { email: email.trim(), password });
+      onLogin(res.data.token, res.data.email);
     } catch (err) {
-      // Still let them in locally even if the backend log couldn't be written —
-      // this gate is for identification, not real access control.
-      console.warn('Login logging failed:', err.message);
+      setError(err.response?.data?.error || err.message || 'Something went wrong.');
     }
 
-    onLogin(email.trim());
     setLoading(false);
   };
 
@@ -35,30 +39,50 @@ export default function LoginGate({ onLogin }) {
             API
           </div>
           <h1 className="text-sm font-bold text-gray-900">Cloud API Helper</h1>
-          <p className="text-xs text-gray-400 mt-1">Enter your email to continue</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {mode === 'login' ? 'Sign in to continue' : 'Create an account to continue'}
+          </p>
         </div>
 
-        <div>
+        <div className="space-y-3">
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoFocus
+            autoComplete="username"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Password (min 8 characters)"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
 
         <button
           type="submit"
           disabled={!isValid || loading}
           className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Continuing…' : 'Continue'}
+          {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
         </button>
 
-        <p className="text-xs text-gray-300 text-center">
-          No password needed — this just identifies who's using the tool.
+        <p className="text-xs text-gray-400 text-center">
+          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          <button
+            type="button"
+            onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); }}
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {mode === 'login' ? 'Create one' : 'Sign in'}
+          </button>
         </p>
       </form>
     </div>

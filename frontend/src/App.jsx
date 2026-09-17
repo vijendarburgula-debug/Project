@@ -74,6 +74,7 @@ const SERVICE_NAMES = {
 const PROXY_URL = '/api/proxy/execute';
 const SIDEBAR_KEY = 'cloud_api_helper_sidebar';
 const EMAIL_KEY   = 'cloud_api_helper_user_email';
+const SESSION_KEY = 'cloud_api_helper_session_token';
 const MAX_HISTORY = 100;
 // Only this email can see the login history — must match backend's app.admin.email.
 const ADMIN_EMAIL = 'vijendarburgula@gmail.com';
@@ -102,20 +103,54 @@ function loadBool(key, def = true) {
 
 export default function App() {
 
-  // ── Login gate ───────────────────────────────────────────────────────────────
+  // ── Login gate (real session, not just a typed email) ───────────────────────
   const [userEmail, setUserEmail] = useState(() => {
     try { return localStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; }
   });
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [loginsOpen, setLoginsOpen] = useState(false);
 
-  const handleLogin = email => {
-    try { localStorage.setItem(EMAIL_KEY, email); } catch {}
+  const applySession = (sessionToken, email) => {
+    try {
+      localStorage.setItem(SESSION_KEY, sessionToken);
+      localStorage.setItem(EMAIL_KEY, email);
+    } catch {}
+    axios.defaults.headers.common['Authorization'] = `Bearer ${sessionToken}`;
     setUserEmail(email);
   };
-  const handleSwitchUser = () => {
-    try { localStorage.removeItem(EMAIL_KEY); } catch {}
+
+  const clearSession = () => {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(EMAIL_KEY);
+    } catch {}
+    delete axios.defaults.headers.common['Authorization'];
     setUserEmail('');
   };
+
+  const handleLogin = (sessionToken, email) => applySession(sessionToken, email);
+
+  const handleLogout = () => {
+    axios.post('/api/auth/logout').catch(() => {});
+    clearSession();
+  };
+
+  // Validate any stored session on load — the backend's in-memory sessions
+  // don't survive a server restart, so a stale token needs to bounce back
+  // to the login screen rather than silently pretending to be logged in.
+  useEffect(() => {
+    const stored = (() => { try { return localStorage.getItem(SESSION_KEY); } catch { return null; } })();
+    if (!stored) { setSessionChecked(true); return; }
+
+    axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`;
+    axios.get('/api/auth/me')
+      .then(res => {
+        if (res.data?.email) applySession(stored, res.data.email);
+        else clearSession();
+      })
+      .catch(() => clearSession())
+      .finally(() => setSessionChecked(true));
+  }, []);
 
   // ── Core state ──────────────────────────────────────────────────────────────
   const [service,     setService]     = useState('google-my-drive');
@@ -147,6 +182,10 @@ export default function App() {
     setHistory(loadHistory(userEmail));
     setActiveHistoryId(null);
   }, [userEmail]);
+
+  if (!sessionChecked) {
+    return <div className="h-screen bg-gray-50" />;
+  }
 
   if (!userEmail) {
     return <LoginGate onLogin={handleLogin} />;
@@ -327,10 +366,10 @@ export default function App() {
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
               <span className="text-xs font-mono text-gray-600 hidden sm:inline">👤 {userEmail}</span>
               <button
-                onClick={handleSwitchUser}
+                onClick={handleLogout}
                 className="text-xs font-medium text-gray-400 hover:text-gray-700"
               >
-                Switch
+                Log out
               </button>
             </div>
           </div>
@@ -401,7 +440,7 @@ export default function App() {
         lastUrl={lastSentUrl}
       />
 
-      {loginsOpen && <LoginsPanel requesterEmail={userEmail} onClose={() => setLoginsOpen(false)} />}
+      {loginsOpen && <LoginsPanel onClose={() => setLoginsOpen(false)} />}
     </div>
   );
 }
