@@ -1,5 +1,6 @@
 package com.postmanhelper.controller;
 
+import com.postmanhelper.model.AdminResetPasswordRequest;
 import com.postmanhelper.model.AuthRequest;
 import com.postmanhelper.model.UserAccount;
 import com.postmanhelper.repository.UserAccountRepository;
@@ -130,6 +131,41 @@ public class AuthController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"logins.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(bytes);
+    }
+
+    // ── Admin: user accounts / password reset ────────────────────────────────
+    @GetMapping("/admin/users")
+    public ResponseEntity<?> listUsers(HttpServletRequest httpReq) {
+        if (!isAdmin(httpReq)) return error(403, "Admin access only.");
+        List<Map<String, String>> result = new ArrayList<>();
+        for (UserAccount u : users.findAll()) {
+            Map<String, String> row = new LinkedHashMap<>();
+            row.put("email", u.getEmail());
+            row.put("createdAt", u.getCreatedAt());
+            result.add(row);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/admin/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody AdminResetPasswordRequest req, HttpServletRequest httpReq) {
+        if (!isAdmin(httpReq)) return error(403, "Admin access only.");
+
+        String email = normalizeEmail(req.getEmail());
+        String newPassword = req.getNewPassword() == null ? "" : req.getNewPassword();
+        if (newPassword.length() < MIN_PASSWORD_LENGTH) {
+            return error(400, "Password must be at least " + MIN_PASSWORD_LENGTH + " characters.");
+        }
+
+        Optional<UserAccount> found = users.findByEmailIgnoreCase(email);
+        if (!found.isPresent()) return error(404, "No account with this email.");
+
+        UserAccount user = found.get();
+        user.setPasswordHash(encoder.encode(newPassword));
+        users.save(user);
+        sessions.invalidateAllForEmail(email); // force re-login everywhere with the new password
+
+        return ResponseEntity.ok(Collections.singletonMap("status", "ok"));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

@@ -30,4 +30,10 @@ public class SessionService {
     public void invalidate(String token) {
         if (token != null) tokenToEmail.remove(token);
     }
+
+    // Used after an admin password reset — forces re-login with the new
+    // password on any device/tab that was already signed in as this user.
+    public void invalidateAllForEmail(String email) {
+        tokenToEmail.values().removeIf(e -> e.equalsIgnoreCase(email));
+    }
 }
