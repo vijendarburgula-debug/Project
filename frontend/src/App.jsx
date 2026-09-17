@@ -72,7 +72,6 @@ const SERVICE_NAMES = {
 // In dev: Vite proxies /api → localhost:8080  (see vite.config.js)
 // In prod: Nginx proxies /api → localhost:8080 on the server
 const PROXY_URL = '/api/proxy/execute';
-const HISTORY_KEY = 'cloud_api_helper_history';
 const SIDEBAR_KEY = 'cloud_api_helper_sidebar';
 const EMAIL_KEY   = 'cloud_api_helper_user_email';
 const MAX_HISTORY = 100;
@@ -80,13 +79,19 @@ const MAX_HISTORY = 100;
 const ADMIN_EMAIL = 'vijendarburgula@gmail.com';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
+// Request history is scoped per logged-in email, so switching users on the
+// same browser never shows one person's call history to another.
 
-function loadHistory() {
-  try { const r = localStorage.getItem(HISTORY_KEY); return r ? JSON.parse(r) : []; }
+const historyKey = email => `cloud_api_helper_history_${email}`;
+
+function loadHistory(email) {
+  if (!email) return [];
+  try { const r = localStorage.getItem(historyKey(email)); return r ? JSON.parse(r) : []; }
   catch { return []; }
 }
-function saveHistory(items) {
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items)); } catch {}
+function saveHistory(email, items) {
+  if (!email) return;
+  try { localStorage.setItem(historyKey(email), JSON.stringify(items)); } catch {}
 }
 function loadBool(key, def = true) {
   try { const v = localStorage.getItem(key); return v === null ? def : v !== 'false'; }
@@ -127,8 +132,8 @@ export default function App() {
   const [sidebarOpen,  setSidebarOpen]  = useState(() => loadBool(SIDEBAR_KEY, true));
   const [lastSentUrl,  setLastSentUrl]  = useState('');
 
-  // ── History state ────────────────────────────────────────────────────────────
-  const [history,         setHistory]         = useState(loadHistory);
+  // ── History state (scoped to the current user) ──────────────────────────────
+  const [history,         setHistory]         = useState(() => loadHistory(userEmail));
   const [activeHistoryId, setActiveHistoryId] = useState(null);
 
   const operations = getOnly(SERVICE_APIS[service], service);
@@ -136,6 +141,12 @@ export default function App() {
 
   // Persist panel states
   useEffect(() => { localStorage.setItem(SIDEBAR_KEY, String(sidebarOpen)); }, [sidebarOpen]);
+
+  // Reload history whenever the logged-in user changes (e.g. Switch → new login)
+  useEffect(() => {
+    setHistory(loadHistory(userEmail));
+    setActiveHistoryId(null);
+  }, [userEmail]);
 
   if (!userEmail) {
     return <LoginGate onLogin={handleLogin} />;
@@ -174,13 +185,13 @@ export default function App() {
   const handleHistoryDelete = id => {
     const next = history.filter(h => h.id !== id);
     setHistory(next);
-    saveHistory(next);
+    saveHistory(userEmail, next);
     if (activeHistoryId === id) setActiveHistoryId(null);
   };
 
   const handleHistoryClear = () => {
     setHistory([]);
-    saveHistory([]);
+    saveHistory(userEmail, []);
     setActiveHistoryId(null);
   };
 
@@ -277,7 +288,7 @@ export default function App() {
     setActiveHistoryId(historyItem.id);
     setHistory(prev => {
       const next = [historyItem, ...prev].slice(0, MAX_HISTORY);
-      saveHistory(next);
+      saveHistory(userEmail, next);
       return next;
     });
 
