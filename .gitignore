@@ -4,6 +4,7 @@ backend/*.log
 backend/*.log.err
 backend/*.run.log
 backend/*.run.err
+backend/logins.csv
 
 # Frontend (Node/Vite)
 frontend/node_modules/

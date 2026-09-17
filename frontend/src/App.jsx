@@ -6,6 +6,8 @@ import RequestPanel       from './components/RequestPanel';
 import ResponseViewer     from './components/ResponseViewer';
 import HistorySidebar     from './components/HistorySidebar';
 import AiChat            from './components/AiChat';
+import LoginGate          from './components/LoginGate';
+import LoginsPanel        from './components/LoginsPanel';
 
 import { googleMyDriveAPIs }     from './apis/googleMyDrive';
 import { googleSharedDriveAPIs } from './apis/googleSharedDrive';
@@ -72,7 +74,10 @@ const SERVICE_NAMES = {
 const PROXY_URL = '/api/proxy/execute';
 const HISTORY_KEY = 'cloud_api_helper_history';
 const SIDEBAR_KEY = 'cloud_api_helper_sidebar';
+const EMAIL_KEY   = 'cloud_api_helper_user_email';
 const MAX_HISTORY = 100;
+// Only this email can see the login history — must match backend's app.admin.email.
+const ADMIN_EMAIL = 'vijendarburgula@gmail.com';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 
@@ -91,6 +96,21 @@ function loadBool(key, def = true) {
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
+
+  // ── Login gate ───────────────────────────────────────────────────────────────
+  const [userEmail, setUserEmail] = useState(() => {
+    try { return localStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; }
+  });
+  const [loginsOpen, setLoginsOpen] = useState(false);
+
+  const handleLogin = email => {
+    try { localStorage.setItem(EMAIL_KEY, email); } catch {}
+    setUserEmail(email);
+  };
+  const handleSwitchUser = () => {
+    try { localStorage.removeItem(EMAIL_KEY); } catch {}
+    setUserEmail('');
+  };
 
   // ── Core state ──────────────────────────────────────────────────────────────
   const [service,     setService]     = useState('google-my-drive');
@@ -116,6 +136,10 @@ export default function App() {
 
   // Persist panel states
   useEffect(() => { localStorage.setItem(SIDEBAR_KEY, String(sidebarOpen)); }, [sidebarOpen]);
+
+  if (!userEmail) {
+    return <LoginGate onLogin={handleLogin} />;
+  }
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -279,6 +303,26 @@ export default function App() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2">
+            {userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+              <button
+                onClick={() => setLoginsOpen(true)}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
+                title="View login history"
+              >
+                🗂 Logins
+              </button>
+            )}
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
+              <span className="text-xs font-mono text-gray-600 hidden sm:inline">👤 {userEmail}</span>
+              <button
+                onClick={handleSwitchUser}
+                className="text-xs font-medium text-gray-400 hover:text-gray-700"
+              >
+                Switch
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -346,6 +390,8 @@ export default function App() {
         lastResponse={response}
         lastUrl={lastSentUrl}
       />
+
+      {loginsOpen && <LoginsPanel requesterEmail={userEmail} onClose={() => setLoginsOpen(false)} />}
     </div>
   );
 }
