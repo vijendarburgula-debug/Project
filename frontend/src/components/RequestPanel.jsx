@@ -125,46 +125,7 @@ export default function RequestPanel({
               {showTok ? '🙈 Hide' : '👁 Show'}
             </button>
           </div>
-          {tokenHelp && (
-            <button
-              type="button"
-              onClick={() => setHelp(v => !v)}
-              className={`px-2.5 py-2 text-xs font-medium rounded-lg border whitespace-nowrap transition-colors ${
-                showHelp
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'text-blue-600 border-blue-300 hover:bg-blue-50'
-              }`}
-            >
-              ❓ Need a token?
-            </button>
-          )}
         </div>
-
-        {showHelp && tokenHelp && (
-          <div className="px-3 pb-3 -mt-0.5">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Scopes needed</p>
-                <div className="flex flex-wrap gap-1">
-                  {tokenHelp.scopes.map(s => (
-                    <span key={s} className="text-[11px] font-mono bg-white border border-blue-200 text-blue-700 rounded px-1.5 py-0.5">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <p className="text-xs text-gray-600">{tokenHelp.note}</p>
-              <a
-                href={tokenHelp.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
-              >
-                Get one at {tokenHelp.linkLabel} ↗
-              </a>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Tabs row ──────────────────────────────────────────────────────── */}
