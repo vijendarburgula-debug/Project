@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { downloadCsv } from '../utils/jsonToCsv';
+import { downloadJson } from '../utils/download';
+import JsonTree from './JsonTree';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -90,19 +92,10 @@ function useCopyToast() {
 }
 
 // ── Quick Pick Table ───────────────────────────────────────────────────────────
-function QuickPick({ items }) {
+// `filter` is owned by the parent (ResponseViewer) so the Download buttons can
+// export exactly the filtered rows shown here, not the full response.
+function QuickPick({ items, filter, onFilterChange, filtered }) {
   const { toast, copy } = useCopyToast();
-  const [filter, setFilter] = useState('');
-
-  const filtered = filter
-    ? items.filter(item => {
-        const { displayName, id, email } = extractFields(item);
-        const q = filter.toLowerCase();
-        return (displayName || '').toLowerCase().includes(q)
-            || (id || '').toLowerCase().includes(q)
-            || (email || '').toLowerCase().includes(q);
-      })
-    : items;
 
   return (
     <div className="mb-4">
@@ -121,7 +114,7 @@ function QuickPick({ items }) {
         <input
           type="text"
           value={filter}
-          onChange={e => setFilter(e.target.value)}
+          onChange={e => onFilterChange(e.target.value)}
           placeholder="Filter..."
           className="text-xs border border-gray-200 rounded px-2 py-1 w-40 focus:outline-none focus:border-blue-400"
         />
@@ -205,14 +198,40 @@ function QuickPick({ items }) {
 export default function ResponseViewer({ response }) {
   const { status, body, error } = response;
   const [view, setView] = useState('table');  // 'table' | 'json'
+  const [itemFilter, setItemFilter] = useState('');
+  const { toast, copy } = useCopyToast();
 
   const isSuccess = status >= 200 && status < 300;
-  const bodyStr   = body != null ? JSON.stringify(body, null, 2) : (error || 'No response body');
   const canDownload = body != null;
   const arrayItems  = body ? findArray(body) : null;
+  const isTreeable  = body !== null && typeof body === 'object';
+
+  const filteredItems = arrayItems && itemFilter
+    ? arrayItems.filter(item => {
+        const { displayName, id, email } = extractFields(item);
+        const q = itemFilter.toLowerCase();
+        return (displayName || '').toLowerCase().includes(q)
+            || (id || '').toLowerCase().includes(q)
+            || (email || '').toLowerCase().includes(q);
+      })
+    : arrayItems;
+
+  // When the Quick Pick table is filtered, exports reflect only the visible
+  // rows — otherwise they export the full response body.
+  const isFiltered  = arrayItems && view === 'table' && itemFilter.trim() !== '';
+  const exportData  = isFiltered ? filteredItems : body;
+  const exportSuffix = isFiltered ? '-filtered' : '';
+  const bodyStr      = exportData != null ? JSON.stringify(exportData, null, 2) : (error || 'No response body');
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-emerald-400 text-xs font-mono px-3 py-2 rounded-lg shadow-lg border border-gray-700 animate-pulse">
+          ✓ {toast}
+        </div>
+      )}
 
       {/* ── Header bar ────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 flex-wrap gap-2">
@@ -251,9 +270,41 @@ export default function ResponseViewer({ response }) {
             </div>
           )}
 
+          {/* Copy JSON */}
+          <button
+            onClick={() => canDownload && copy(bodyStr, 'Copied JSON')}
+            disabled={!canDownload}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors ${
+              canDownload
+                ? 'border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 cursor-pointer'
+                : 'border-gray-200 text-gray-300 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M8 2a2 2 0 00-2 2v1H5a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2v-1h1a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a2 2 0 00-2-2H8zm3 3V3H8v2h3zm2 2H5v9h8V7h-0z"/>
+            </svg>
+            Copy JSON
+          </button>
+
+          {/* Download JSON */}
+          <button
+            onClick={() => canDownload && downloadJson(exportData, `response-${status}${exportSuffix}.json`)}
+            disabled={!canDownload}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors ${
+              canDownload
+                ? 'border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 cursor-pointer'
+                : 'border-gray-200 text-gray-300 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
+            </svg>
+            Download JSON
+          </button>
+
           {/* Download CSV */}
           <button
-            onClick={() => canDownload && downloadCsv(body, `response-${status}.csv`)}
+            onClick={() => canDownload && downloadCsv(exportData, `response-${status}${exportSuffix}.csv`)}
             disabled={!canDownload}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors ${
               canDownload
@@ -273,25 +324,29 @@ export default function ResponseViewer({ response }) {
       <div className="p-4">
         {/* Quick Pick table — shown when array detected AND table view selected */}
         {arrayItems && view === 'table' && (
-          <QuickPick items={arrayItems} />
+          <QuickPick items={arrayItems} filter={itemFilter} onFilterChange={setItemFilter} filtered={filteredItems} />
         )}
 
-        {/* Raw JSON — always shown when no array, or when JSON view selected */}
+        {/* JSON tree — always shown when no array, or when JSON view selected */}
         {(!arrayItems || view === 'json') && (
-          <pre className="text-xs font-mono text-gray-800 bg-gray-50 rounded-lg p-4 overflow-auto max-h-[480px] whitespace-pre-wrap break-all leading-relaxed">
-            {bodyStr}
-          </pre>
+          isTreeable ? (
+            <JsonTree data={body} />
+          ) : (
+            <pre className="text-xs font-mono text-gray-800 bg-gray-50 rounded-lg p-4 overflow-auto max-h-[480px] whitespace-pre-wrap break-all leading-relaxed">
+              {bodyStr}
+            </pre>
+          )
         )}
 
-        {/* When table view is active, also show raw JSON collapsed below */}
+        {/* When table view is active, also show the JSON tree collapsed below */}
         {arrayItems && view === 'table' && (
           <details className="mt-3">
             <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 select-none">
               Show raw JSON
             </summary>
-            <pre className="mt-2 text-xs font-mono text-gray-700 bg-gray-50 rounded-lg p-3 overflow-auto max-h-64 whitespace-pre-wrap break-all leading-relaxed">
-              {bodyStr}
-            </pre>
+            <div className="mt-2">
+              <JsonTree data={body} />
+            </div>
           </details>
         )}
       </div>

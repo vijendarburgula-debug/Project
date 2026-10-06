@@ -149,6 +149,15 @@ export const outlookAPIs = [
     description: 'Returns senders manually classified as always Focused or always Other.',
     params: [],
   },
+  {
+    id: 'message-rules-list',
+    group: 'Mail — Settings',
+    name: 'List Inbox Rules',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messageRules',
+    description: 'Returns the automatic inbox rules (move, forward, flag, etc.) configured for your mailbox.',
+    params: [],
+  },
 
   // ── CALENDAR ──────────────────────────────────────────────────────────────
   {
@@ -208,6 +217,16 @@ export const outlookAPIs = [
     ],
   },
 
+  {
+    id: 'calendar-groups-list',
+    group: 'Calendar',
+    name: 'List Calendar Groups',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/me/calendarGroups',
+    description: 'Returns the calendar groups used to organize your calendars.',
+    params: [],
+  },
+
   // ── CONTACTS ──────────────────────────────────────────────────────────────
   {
     id: 'contacts-list',
@@ -241,5 +260,19 @@ export const outlookAPIs = [
     baseUrl: 'https://graph.microsoft.com/v1.0/me/contactFolders',
     description: 'Returns folders used to organize your contacts.',
     params: [],
+  },
+
+  // ── PEOPLE ────────────────────────────────────────────────────────────────
+  {
+    id: 'people-list',
+    group: 'People',
+    name: 'List Relevant People',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/me/people',
+    description: 'Returns people ranked by relevance to you, based on communication and collaboration patterns across mail and files.',
+    params: [
+      { key: '$search', type: 'query', required: false, hint: 'e.g. "jane"', description: 'Filter by name, email, or other identifier.' },
+      { key: '$top',    type: 'query', required: false, hint: 'e.g. 25', description: 'Max people to return.' },
+    ],
   },
 ];

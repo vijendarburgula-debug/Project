@@ -36,6 +36,40 @@ export const teamsAPIs = [
       { key: 'teamId', type: 'path', required: true, hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
     ],
   },
+  {
+    id: 'team-installed-apps-list',
+    group: 'Teams',
+    name: 'List Installed Apps',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/installedApps',
+    description: 'Returns all apps installed in a team.',
+    params: [
+      { key: 'teamId',  type: 'path',  required: true,  hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
+      { key: '$expand', type: 'query', required: false, hint: 'e.g. teamsAppDefinition', description: 'Expand to include app details.' },
+    ],
+  },
+  {
+    id: 'team-schedule-get',
+    group: 'Teams',
+    name: 'Get Team Schedule',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/schedule',
+    description: 'Returns the shift-scheduling configuration for a team (Shifts app).',
+    params: [
+      { key: 'teamId', type: 'path', required: true, hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
+    ],
+  },
+  {
+    id: 'team-tags-list',
+    group: 'Teams',
+    name: 'List Team Tags',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/tags',
+    description: 'Returns all tags (used to @mention groups of members) defined in a team.',
+    params: [
+      { key: 'teamId', type: 'path', required: true, hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
+    ],
+  },
 
   // ── CHANNELS ──────────────────────────────────────────────────────────────
   {
@@ -68,6 +102,31 @@ export const teamsAPIs = [
     method: 'GET',
     baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/channels/{channelId}/members',
     description: 'Returns all members of a specific channel (relevant for private/shared channels).',
+    params: [
+      { key: 'teamId',    type: 'path', required: true, hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
+      { key: 'channelId', type: 'path', required: true, hint: 'e.g. 19:4a95f7d8db4c4e7fae857bcebe0623e6@thread.tacv2', description: 'Channel ID.' },
+    ],
+  },
+
+  {
+    id: 'channel-tabs-list',
+    group: 'Channels',
+    name: 'List Channel Tabs',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/channels/{channelId}/tabs',
+    description: 'Returns all tabs (apps pinned across the top) in a channel.',
+    params: [
+      { key: 'teamId',    type: 'path', required: true, hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
+      { key: 'channelId', type: 'path', required: true, hint: 'e.g. 19:4a95f7d8db4c4e7fae857bcebe0623e6@thread.tacv2', description: 'Channel ID.' },
+    ],
+  },
+  {
+    id: 'channel-files-folder-get',
+    group: 'Channels',
+    name: 'Get Channel Files Folder',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/channels/{channelId}/filesFolder',
+    description: 'Returns the SharePoint drive folder backing a channel\'s Files tab.',
     params: [
       { key: 'teamId',    type: 'path', required: true, hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
       { key: 'channelId', type: 'path', required: true, hint: 'e.g. 19:4a95f7d8db4c4e7fae857bcebe0623e6@thread.tacv2', description: 'Channel ID.' },
@@ -115,6 +174,20 @@ export const teamsAPIs = [
     ],
   },
 
+  {
+    id: 'channel-messages-delta',
+    group: 'Channel Messages',
+    name: 'Channel Message Sync (Delta)',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/teams/{teamId}/channels/{channelId}/messages/delta',
+    description: 'Returns messages added/updated in a channel since the last sync — for tracking channel activity.',
+    params: [
+      { key: 'teamId',    type: 'path',  required: true,  hint: 'e.g. 02bd9fd6-8f93-4758-87c3-1fb73740a315', description: 'Team ID.' },
+      { key: 'channelId', type: 'path',  required: true,  hint: 'e.g. 19:4a95f7d8db4c4e7fae857bcebe0623e6@thread.tacv2', description: 'Channel ID.' },
+      { key: '$deltatoken', type: 'query', required: false, hint: 'e.g. <token from previous @odata.deltaLink>', description: 'Resume from a previous delta sync.' },
+    ],
+  },
+
   // ── CHATS (1:1 / GROUP) ───────────────────────────────────────────────────
   {
     id: 'chats-list',
@@ -159,6 +232,29 @@ export const teamsAPIs = [
     description: 'Returns all participants in a chat.',
     params: [
       { key: 'chatId', type: 'path', required: true, hint: 'e.g. 19:2da4c29f6d7041eca70b625b91280435@thread.v2', description: 'Chat ID.' },
+    ],
+  },
+  {
+    id: 'chat-pinned-messages-list',
+    group: 'Chats',
+    name: 'List Pinned Messages',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/chats/{chatId}/pinnedMessages',
+    description: 'Returns messages pinned in a chat.',
+    params: [
+      { key: 'chatId', type: 'path', required: true, hint: 'e.g. 19:2da4c29f6d7041eca70b625b91280435@thread.v2', description: 'Chat ID.' },
+    ],
+  },
+  {
+    id: 'chat-installed-apps-list',
+    group: 'Chats',
+    name: 'List Chat Installed Apps',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/chats/{chatId}/installedApps',
+    description: 'Returns apps installed in a 1:1 or group chat.',
+    params: [
+      { key: 'chatId',  type: 'path',  required: true,  hint: 'e.g. 19:2da4c29f6d7041eca70b625b91280435@thread.v2', description: 'Chat ID.' },
+      { key: '$expand', type: 'query', required: false, hint: 'e.g. teamsAppDefinition', description: 'Expand to include app details.' },
     ],
   },
 ];

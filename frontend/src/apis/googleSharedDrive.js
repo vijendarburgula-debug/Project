@@ -111,6 +111,20 @@ export const googleSharedDriveAPIs = [
     ],
   },
 
+  {
+    id: 'shared-drive-files-download',
+    group: 'Files in Shared Drive',
+    name: 'Download File Content',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/files/{fileId}',
+    description: 'Downloads the actual file bytes (set alt=media). For Google Docs/Sheets/Slides, use Export instead.',
+    params: [
+      { key: 'fileId', type: 'path', required: true, hint: 'e.g. 1BxiMVs0XRA5nFMd...', description: 'Drive file ID.' },
+      { key: 'alt', type: 'query', required: true, hint: 'media', description: 'Must be "media" to download file content.' },
+      { key: 'supportsAllDrives', type: 'query', required: true, hint: 'true', description: 'Required for Shared Drive items.' },
+    ],
+  },
+
   // ── PERMISSIONS ───────────────────────────────────────────────────────────
   {
     id: 'shared-drive-permissions-list',
@@ -123,6 +137,74 @@ export const googleSharedDriveAPIs = [
       { key: 'fileId',    type: 'path', required: true, hint: 'e.g. 1BxiMVs0XRA5nFMd...', description: 'Drive file or folder ID.' },
       { key: 'fields',    type: 'query', required: false, hint: 'e.g. permissions(id,type,role,emailAddress,displayName)', description: 'Fields to include.' },
       { key: 'supportsAllDrives', type: 'query', required: true, hint: 'true', description: 'Required for Shared Drives.' },
+    ],
+  },
+  {
+    id: 'shared-drive-permissions-get',
+    group: 'Permissions',
+    name: 'Get Single Permission (Shared Drive file)',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/files/{fileId}/permissions/{permissionId}',
+    description: 'Returns details for a specific permission entry on a Shared Drive file.',
+    params: [
+      { key: 'fileId',       type: 'path', required: true, hint: 'e.g. 1BxiMVs0XRA5nFMd...', description: 'Drive file ID.' },
+      { key: 'permissionId', type: 'path', required: true, hint: 'e.g. anyoneWithLink or specific ID', description: 'Permission ID.' },
+      { key: 'supportsAllDrives', type: 'query', required: true, hint: 'true', description: 'Required for Shared Drives.' },
+    ],
+  },
+
+  // ── CHANGES ───────────────────────────────────────────────────────────────
+  {
+    id: 'shared-drive-changes-get-start-token',
+    group: 'Changes',
+    name: 'Get Start Page Token (Shared Drive)',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/changes/startPageToken',
+    description: 'Returns the current page token for tracking future changes within a specific shared drive.',
+    params: [
+      { key: 'driveId',           type: 'query', required: true,  hint: 'e.g. 0AGtQa9Ux0mqlUk9PVA', description: 'Shared drive to track changes for.' },
+      { key: 'supportsAllDrives', type: 'query', required: true,  hint: 'true', description: 'Required for Shared Drives.' },
+    ],
+  },
+  {
+    id: 'shared-drive-changes-list',
+    group: 'Changes',
+    name: 'List Changes (Shared Drive)',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/changes',
+    description: 'Returns all changes within a shared drive since a given page token.',
+    params: [
+      { key: 'pageToken',                 type: 'query', required: true,  hint: 'e.g. <token from getStartPageToken>', description: 'The page token from startPageToken.' },
+      { key: 'driveId',                   type: 'query', required: true,  hint: 'e.g. 0AGtQa9Ux0mqlUk9PVA', description: 'Shared drive to list changes for.' },
+      { key: 'includeItemsFromAllDrives', type: 'query', required: true,  hint: 'true', description: 'Required — must be true.' },
+      { key: 'supportsAllDrives',         type: 'query', required: true,  hint: 'true', description: 'Required for Shared Drives.' },
+      { key: 'pageSize',                  type: 'query', required: false, hint: 'e.g. 100', description: 'Max changes per page (1–1000).' },
+    ],
+  },
+
+  // ── COMMENTS & REVISIONS ──────────────────────────────────────────────────
+  {
+    id: 'shared-drive-comments-list',
+    group: 'Comments & Revisions',
+    name: 'List Comments (Shared Drive file)',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/files/{fileId}/comments',
+    description: 'Returns all comments on a file inside a shared drive.',
+    params: [
+      { key: 'fileId', type: 'path', required: true, hint: 'e.g. 1BxiMVs0XRA5nFMd...', description: 'Drive file ID.' },
+      { key: 'fields', type: 'query', required: false, hint: 'e.g. comments(id,author,content,resolved,createdTime)', description: 'Fields to include.' },
+    ],
+  },
+  {
+    id: 'shared-drive-revisions-list',
+    group: 'Comments & Revisions',
+    name: 'List File Revisions (Shared Drive file)',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/files/{fileId}/revisions',
+    description: 'Returns all revisions of a file inside a shared drive.',
+    params: [
+      { key: 'fileId', type: 'path', required: true, hint: 'e.g. 1BxiMVs0XRA5nFMd...', description: 'Drive file ID.' },
+      { key: 'fields', type: 'query', required: false, hint: 'e.g. revisions(id,modifiedTime,lastModifyingUser,size)', description: 'Fields to include.' },
     ],
   },
 ];

@@ -67,6 +67,18 @@ export const googleMyDriveAPIs = [
     ],
   },
   {
+    id: 'files-download',
+    group: 'Files — Read',
+    name: 'Download File Content (v3)',
+    method: 'GET',
+    baseUrl: 'https://www.googleapis.com/drive/v3/files/{fileId}',
+    description: 'Downloads the actual file bytes (set alt=media). For Google Docs/Sheets/Slides, use Export instead.',
+    params: [
+      { key: 'fileId', type: 'path', required: true, hint: 'e.g. 1BxiMVs0XRA5nFMd...', description: 'Drive file ID.' },
+      { key: 'alt',    type: 'query', required: true, hint: 'media', description: 'Must be "media" to download file content.' },
+    ],
+  },
+  {
     id: 'files-export',
     group: 'Files — Read',
     name: 'Export Google Doc (v3)',

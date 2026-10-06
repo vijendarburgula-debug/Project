@@ -1,4 +1,35 @@
 import { useState } from 'react';
+import { downloadCsv } from '../utils/jsonToCsv';
+import { downloadJson } from '../utils/download';
+
+// Strip tokens/secrets before exporting — history items store the Bearer
+// token and any custom auth headers used for that request.
+function redact(item) {
+  const { token, customHeaders, ...rest } = item;
+  return {
+    ...rest,
+    token: token ? '[REDACTED]' : '',
+    customHeaders: (customHeaders || []).map(h =>
+      /auth|token|key|secret/i.test(h.key || '') ? { ...h, value: '[REDACTED]' } : h
+    ),
+  };
+}
+
+function exportHistoryJson(history) {
+  downloadJson(history.map(redact), 'history.json');
+}
+
+function exportHistoryCsv(history) {
+  const rows = history.map(h => ({
+    timestamp: new Date(h.timestamp).toISOString(),
+    service:   h.serviceName,
+    operation: h.operationName,
+    method:    h.method,
+    url:       h.url,
+    status:    h.status,
+  }));
+  downloadCsv(rows, 'history.csv');
+}
 
 const METHOD_BADGE = {
   GET:    'bg-emerald-500 text-white',
@@ -84,14 +115,22 @@ function HistoryRow({ item, onSelect, onDelete, isActive }) {
 export default function HistorySidebar({
   history, activeId, onSelect, onDelete, onClear, collapsed, onToggle,
 }) {
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter]             = useState('');
+  const [methodFilter, setMethodFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const filtered = filter
-    ? history.filter(h =>
-        (h.operationName + h.serviceName + h.url + h.method)
-          .toLowerCase().includes(filter.toLowerCase())
-      )
-    : history;
+  const methods = [...new Set(history.map(h => h.method))].sort();
+
+  const filtered = history
+    .filter(h => !filter || (h.operationName + h.serviceName + h.url + h.method)
+      .toLowerCase().includes(filter.toLowerCase()))
+    .filter(h => !methodFilter || h.method === methodFilter)
+    .filter(h => {
+      if (!statusFilter) return true;
+      if (statusFilter === '2xx') return h.status >= 200 && h.status < 300;
+      if (statusFilter === '4xx+') return h.status >= 400;
+      return true;
+    });
 
   /* ── Collapsed rail ── */
   if (collapsed) {
@@ -139,18 +178,34 @@ export default function HistorySidebar({
           </span>
         </div>
         {history.length > 0 && (
-          <button
-            onClick={onClear}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-          >
-            Clear all
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportHistoryJson(filtered)}
+              title="Export filtered history as JSON"
+              className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              JSON
+            </button>
+            <button
+              onClick={() => exportHistoryCsv(filtered)}
+              title="Export filtered history as CSV"
+              className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              CSV
+            </button>
+            <button
+              onClick={onClear}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+            >
+              Clear all
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Search */}
+      {/* Search + filters */}
       {history.length > 3 && (
-        <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0">
+        <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0 space-y-1.5">
           <input
             type="text"
             value={filter}
@@ -158,6 +213,25 @@ export default function HistorySidebar({
             placeholder="Filter history…"
             className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-blue-400"
           />
+          <div className="flex items-center gap-1.5">
+            <select
+              value={methodFilter}
+              onChange={e => setMethodFilter(e.target.value)}
+              className="flex-1 min-w-0 text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:border-blue-400 bg-white"
+            >
+              <option value="">All methods</option>
+              {methods.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="flex-1 min-w-0 text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:border-blue-400 bg-white"
+            >
+              <option value="">All statuses</option>
+              <option value="2xx">2xx success</option>
+              <option value="4xx+">4xx+ error</option>
+            </select>
+          </div>
         </div>
       )}
 
@@ -169,7 +243,7 @@ export default function HistorySidebar({
             <p className="text-xs text-gray-400 leading-relaxed">
               {history.length === 0
                 ? 'No history yet.\nSend a request to start tracking.'
-                : `No matches for "${filter}"`}
+                : 'No requests match the current filters.'}
             </p>
           </div>
         ) : (

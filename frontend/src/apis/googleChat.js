@@ -102,6 +102,58 @@ export const googleChatAPIs = [
     ],
   },
 
+  // ── REACTIONS ─────────────────────────────────────────────────────────────
+  {
+    id: 'reactions-list',
+    group: 'Reactions',
+    name: 'List Reactions',
+    method: 'GET',
+    baseUrl: 'https://chat.googleapis.com/v1/spaces/{spaceId}/messages/{messageId}/reactions',
+    description: 'Returns all emoji reactions on a message.',
+    params: [
+      { key: 'spaceId',   type: 'path',  required: true,  hint: 'e.g. AAAAAAAAAAA', description: 'Space ID.' },
+      { key: 'messageId', type: 'path',  required: true,  hint: 'e.g. BBBBBBBBBBB.BBBBBBBBBBB', description: 'Message ID.' },
+      { key: 'filter',    type: 'query', required: false, hint: 'e.g. emoji.unicode = "👍"', description: 'Filter reactions by emoji or user.' },
+      { key: 'pageSize',  type: 'query', required: false, hint: 'e.g. 100', description: 'Max reactions per page.' },
+    ],
+  },
+
+  // ── READ STATE & NOTIFICATIONS ────────────────────────────────────────────
+  {
+    id: 'space-read-state-get',
+    group: 'Read State & Notifications',
+    name: 'Get Space Read State',
+    method: 'GET',
+    baseUrl: 'https://chat.googleapis.com/v1/users/me/spaces/{spaceId}/spaceReadState',
+    description: 'Returns when the authenticated user last read a space — used to compute unread status.',
+    params: [
+      { key: 'spaceId', type: 'path', required: true, hint: 'e.g. AAAAAAAAAAA', description: 'Space ID.' },
+    ],
+  },
+  {
+    id: 'thread-read-state-get',
+    group: 'Read State & Notifications',
+    name: 'Get Thread Read State',
+    method: 'GET',
+    baseUrl: 'https://chat.googleapis.com/v1/users/me/spaces/{spaceId}/threads/{threadId}/threadReadState',
+    description: 'Returns when the authenticated user last read a specific thread within a space.',
+    params: [
+      { key: 'spaceId',  type: 'path', required: true, hint: 'e.g. AAAAAAAAAAA', description: 'Space ID.' },
+      { key: 'threadId', type: 'path', required: true, hint: 'e.g. CCCCCCCCCCC', description: 'Thread ID.' },
+    ],
+  },
+  {
+    id: 'space-notification-setting-get',
+    group: 'Read State & Notifications',
+    name: 'Get Space Notification Setting',
+    method: 'GET',
+    baseUrl: 'https://chat.googleapis.com/v1/users/me/spaces/{spaceId}/spaceNotificationSetting',
+    description: 'Returns the authenticated user\'s notification preference for a space (all, main conversations, off, etc.).',
+    params: [
+      { key: 'spaceId', type: 'path', required: true, hint: 'e.g. AAAAAAAAAAA', description: 'Space ID.' },
+    ],
+  },
+
   // ── SPACE EVENTS ──────────────────────────────────────────────────────────
   {
     id: 'space-events-list',

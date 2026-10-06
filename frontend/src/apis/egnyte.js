@@ -218,6 +218,18 @@ export const egnyteAPIs = [
     ],
   },
 
+  {
+    id: 'permissions-list-roles',
+    group: 'Permissions',
+    name: 'List Permission Roles',
+    method: 'GET',
+    baseUrl: 'https://{egnyteDomain}.egnyte.com/pubapi/v2/permissions/roles',
+    description: 'Returns all built-in and custom permission roles available in the domain.',
+    params: [
+      { key: 'egnyteDomain', type: 'path', required: true, hint: 'e.g. torrancelearning', description: 'Your Egnyte subdomain.' },
+    ],
+  },
+
   // ── LINKS ─────────────────────────────────────────────────────────────────
   {
     id: 'links-create',

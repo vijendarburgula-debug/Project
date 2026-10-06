@@ -29,6 +29,16 @@ export const slackAPIs = [
     ],
   },
 
+  {
+    id: 'team-profile-get',
+    group: 'Team',
+    name: 'Get Team Profile Schema',
+    method: 'GET',
+    baseUrl: 'https://slack.com/api/team.profile.get',
+    description: 'Returns the custom profile field definitions configured for the workspace.',
+    params: [],
+  },
+
   // ── USERS ─────────────────────────────────────────────────────────────────
   {
     id: 'users-list',
@@ -164,6 +174,32 @@ export const slackAPIs = [
     ],
   },
 
+  {
+    id: 'pins-list',
+    group: 'Conversations',
+    name: 'List Pinned Items',
+    method: 'GET',
+    baseUrl: 'https://slack.com/api/pins.list',
+    description: 'Returns all items (messages or files) pinned to a channel.',
+    params: [
+      { key: 'channel', type: 'query', required: true, hint: 'e.g. C0123456', description: 'Channel ID.' },
+    ],
+  },
+  {
+    id: 'reactions-get',
+    group: 'Conversations',
+    name: 'Get Message Reactions',
+    method: 'GET',
+    baseUrl: 'https://slack.com/api/reactions.get',
+    description: 'Returns the emoji reactions on a specific message or file.',
+    params: [
+      { key: 'channel', type: 'query', required: false, hint: 'e.g. C0123456', description: 'Channel ID (for a message).' },
+      { key: 'timestamp', type: 'query', required: false, hint: 'e.g. 1710000000.000100', description: 'Message timestamp.' },
+      { key: 'file',    type: 'query', required: false, hint: 'e.g. F0123456', description: 'File ID (for a file instead of a message).' },
+      { key: 'full',    type: 'query', required: false, hint: 'e.g. true', description: 'Return full reaction details.' },
+    ],
+  },
+
   // ── USER GROUPS ───────────────────────────────────────────────────────────
   {
     id: 'usergroups-list',
@@ -271,6 +307,31 @@ export const slackAPIs = [
     description: 'Returns a user\'s current Do Not Disturb status and schedule.',
     params: [
       { key: 'user', type: 'query', required: false, hint: 'e.g. U0123456', description: 'User ID (defaults to the authed user).' },
+    ],
+  },
+  {
+    id: 'search-messages',
+    group: 'Other',
+    name: 'Search Messages',
+    method: 'GET',
+    baseUrl: 'https://slack.com/api/search.messages',
+    description: 'Searches messages matching a query. Requires a user token with the search:read scope (bot tokens cannot use this).',
+    params: [
+      { key: 'query', type: 'query', required: true,  hint: 'e.g. from:@jane budget', description: 'Search query (supports Slack search modifiers).' },
+      { key: 'count', type: 'query', required: false, hint: 'e.g. 20', description: 'Max results per page.' },
+      { key: 'sort',  type: 'query', required: false, hint: 'e.g. timestamp', description: 'score or timestamp.' },
+    ],
+  },
+  {
+    id: 'search-files',
+    group: 'Other',
+    name: 'Search Files',
+    method: 'GET',
+    baseUrl: 'https://slack.com/api/search.files',
+    description: 'Searches files matching a query. Requires a user token with the search:read scope (bot tokens cannot use this).',
+    params: [
+      { key: 'query', type: 'query', required: true,  hint: 'e.g. budget.xlsx', description: 'Search query.' },
+      { key: 'count', type: 'query', required: false, hint: 'e.g. 20', description: 'Max results per page.' },
     ],
   },
 ];

@@ -144,6 +144,19 @@ export const sharepointAPIs = [
     ],
   },
 
+  {
+    id: 'sites-get-content-types',
+    group: 'SharePoint — Sites',
+    name: 'List Site Content Types',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/{domain}/sites/{siteId}/contentTypes',
+    description: 'Returns the content types (reusable field/metadata definitions) defined at the site level.',
+    params: [
+      { key: 'domain', type: 'path', required: true, hint: 'e.g. contoso.com', description: 'Your M365 tenant domain.' },
+      { key: 'siteId', type: 'path', required: true, hint: 'e.g. site ID', description: 'SharePoint site ID.' },
+    ],
+  },
+
   // ── SHAREPOINT — Lists & Items ────────────────────────────────────────────
   {
     id: 'lists-get',
@@ -314,6 +327,32 @@ export const sharepointAPIs = [
       { key: 'driveId',    type: 'path',  required: true, hint: 'e.g. drive ID', description: 'SharePoint drive ID.' },
       { key: 'searchText', type: 'path',  required: true, hint: 'e.g. invoice', description: 'Search keyword.' },
       { key: '$select',    type: 'query', required: false, hint: 'e.g. id,name,webUrl,size', description: 'Fields to return.' },
+    ],
+  },
+  {
+    id: 'spo-drive-item-versions-list',
+    group: 'SharePoint — Drives',
+    name: 'List Drive Item Versions (SPO)',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/{domain}/drives/{driveId}/items/{itemId}/versions',
+    description: 'Returns all past versions of a file in a SharePoint document library.',
+    params: [
+      { key: 'domain',  type: 'path', required: true, hint: 'e.g. contoso.com', description: 'Your M365 tenant domain.' },
+      { key: 'driveId', type: 'path', required: true, hint: 'e.g. drive ID', description: 'SharePoint drive ID.' },
+      { key: 'itemId',  type: 'path', required: true, hint: 'e.g. 013RJMSJWOZ76GLICRFFAZ67GM6JEZDZG6', description: 'File item ID.' },
+    ],
+  },
+  {
+    id: 'spo-drive-delta',
+    group: 'SharePoint — Drives',
+    name: 'Drive Sync (Delta) (SPO)',
+    method: 'GET',
+    baseUrl: 'https://graph.microsoft.com/v1.0/{domain}/drives/{driveId}/root/delta',
+    description: 'Returns files and folders added/changed/deleted in a document library since the last sync.',
+    params: [
+      { key: 'domain',  type: 'path',  required: true,  hint: 'e.g. contoso.com', description: 'Your M365 tenant domain.' },
+      { key: 'driveId', type: 'path',  required: true,  hint: 'e.g. drive ID', description: 'SharePoint drive ID.' },
+      { key: 'token',   type: 'query', required: false, hint: 'e.g. <token from previous @odata.deltaLink>', description: 'Resume from a previous delta sync.' },
     ],
   },
   {
